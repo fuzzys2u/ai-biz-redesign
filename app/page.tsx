@@ -1,13 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+
+const INDUSTRIES = ['製造', '金融・保険', '小売・EC', 'エネルギー', '物流・運輸', 'ヘルスケア', 'その他'];
+
+const SAMPLE = {
+  businessName: '新規顧客の本人確認業務',
+  currentFlow: '1. 顧客から申込書を受領\n2. 担当者が目視で書類確認\n3. システムに手入力\n4. 上長が承認\n5. 顧客に結果通知',
+  issues: '確認作業に時間がかかる、手入力ミスが発生しやすい、担当者によってばらつきがある',
+};
 
 export default function Home() {
   const [businessName, setBusinessName] = useState('');
   const [currentFlow, setCurrentFlow] = useState('');
   const [issues, setIssues] = useState('');
+  const [industry, setIndustry] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async () => {
     if (!businessName || !currentFlow || !issues) return;
@@ -17,7 +28,7 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessName, currentFlow, issues }),
+        body: JSON.stringify({ businessName, currentFlow, issues, industry }),
       });
       const data = await res.json();
       setResult(data.result);
@@ -28,26 +39,43 @@ export default function Home() {
     }
   };
 
-  const formatResult = (text: string) => {
-    return text.split('\n').map((line, i) => {
-      if (line.startsWith('## ')) {
-        return <h2 key={i} className="text-lg font-semibold mt-6 mb-2 text-gray-800">{line.replace('## ', '')}</h2>;
-      }
-      if (line.startsWith('- ') || line.startsWith('・')) {
-        return <li key={i} className="ml-4 text-gray-700">{line.replace(/^[-・] /, '')}</li>;
-      }
-      if (line.trim() === '') return <br key={i} />;
-      return <p key={i} className="text-gray-700">{line}</p>;
-    });
+  const handleSample = () => {
+    setBusinessName(SAMPLE.businessName);
+    setCurrentFlow(SAMPLE.currentFlow);
+    setIssues(SAMPLE.issues);
+    setIndustry('金融・保険');
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
       <main className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">AI業務再設計ツール</h1>
-          <p className="text-gray-500 mb-8 text-sm">現状の業務フローを入力すると、AIが自動化できる部分と人が判断すべき部分を整理し、TO-BE業務フローを提案します。</p>
+          <p className="text-gray-500 mb-2 text-sm">現状の業務フローを入力すると、AIが自動化できる部分と人が判断すべき部分を整理し、TO-BE業務フローを提案します。</p>
+          <button
+              onClick={handleSample}
+              className="text-blue-600 text-sm underline mb-6 inline-block"
+          >
+            サンプルデータを入力
+          </button>
 
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">業界</label>
+              <select
+                  value={industry}
+                  onChange={e => setIndustry(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">選択してください（任意）</option>
+                {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">業務名</label>
               <input
@@ -89,9 +117,17 @@ export default function Home() {
 
           {result && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-base font-semibold text-gray-900 mb-4">再設計提案</h2>
-                <div className="space-y-1">
-                  {formatResult(result)}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-semibold text-gray-900">再設計提案</h2>
+                  <button
+                      onClick={handleCopy}
+                      className="text-sm text-gray-500 border border-gray-300 rounded-lg px-3 py-1 hover:bg-gray-50 transition"
+                  >
+                    {copied ? 'コピーしました！' : 'コピー'}
+                  </button>
+                </div>
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <ReactMarkdown>{result}</ReactMarkdown>
                 </div>
               </div>
           )}

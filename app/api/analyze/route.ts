@@ -4,11 +4,11 @@ import Anthropic from '@anthropic-ai/sdk';
 const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
-    const { businessName, currentFlow, issues } = await req.json();
+    const { businessName, currentFlow, issues, industry } = await req.json();
 
     const prompt = `
 以下の業務について、AIを前提とした業務再設計の提案をしてください。
-
+${industry ? `\n【業界】\n${industry}\n` : ''}
 【業務名】
 ${businessName}
 
